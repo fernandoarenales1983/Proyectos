@@ -1,0 +1,153 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard de Proyectos</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f9f9f9;
+    }
+    h2 {
+      font-size: 1.2em;
+      margin-bottom: 5px;
+    }
+    select, button {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 20px;
+      font-size: 1em;
+    }
+    #proyectos ul {
+      padding-left: 20px;
+    }
+    #asesorBox, #tiendaBox, #proyectos {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h2>Selecciona una Plaza</h2>
+  <select id="plazaSelect"><option value="">-- Selecciona --</option></select>
+
+  <div id="asesorBox">
+    <h2>Selecciona un Asesor</h2>
+    <select id="asesorSelect"><option value="">-- Selecciona --</option></select>
+  </div>
+
+  <div id="tiendaBox">
+    <h2>Selecciona una Tienda</h2>
+    <select id="tiendaSelect"><option value="">-- Selecciona --</option></select>
+  </div>
+
+  <div id="proyectos">
+    <h2>Proyectos para la tienda</h2>
+    <ul id="proyectoList"></ul>
+  </div>
+
+  <script>
+    const jsonUrl = "https://script.google.com/macros/s/AKfycbxGu1j2AjkP2co2GK1rRB13ju__B-4e6tyE2IkkmhrjT2dSLiAXuCqtP80SNmVXaeD0xg/exec";
+
+    const plazaSelect = document.getElementById("plazaSelect");
+    const asesorSelect = document.getElementById("asesorSelect");
+    const tiendaSelect = document.getElementById("tiendaSelect");
+    const asesorBox = document.getElementById("asesorBox");
+    const tiendaBox = document.getElementById("tiendaBox");
+    const proyectosDiv = document.getElementById("proyectos");
+    const proyectoList = document.getElementById("proyectoList");
+
+    let data = [];
+
+    const unique = arr => [...new Set(arr)];
+    const clearSelect = select => {
+      select.innerHTML = '<option value="">-- Selecciona --</option>';
+    };
+
+    fetch(jsonUrl)
+      .then(response => response.json())
+      .then(rows => {
+        data = rows.map(row => ({
+          plaza: row["Nombre Plaza"]?.toString().trim(),
+          asesor: row["Asesor"]?.toString().trim(),
+          tienda: row["Nombre de Tienda"]?.toString().trim(),
+          proyecto: row["Proyecto"]?.toString().trim()
+        })).filter(d => d.plaza && d.asesor && d.tienda && d.proyecto);
+
+        const plazas = unique(data.map(d => d.plaza));
+        plazas.forEach(p => {
+          const opt = document.createElement("option");
+          opt.value = opt.textContent = p;
+          plazaSelect.appendChild(opt);
+        });
+      })
+      .catch(err => {
+        console.error("❌ Error al cargar los datos:", err);
+        alert("Ocurrió un error al obtener los datos del servidor.");
+      });
+
+    plazaSelect.addEventListener("change", () => {
+      clearSelect(asesorSelect);
+      clearSelect(tiendaSelect);
+      proyectoList.innerHTML = "";
+      asesorBox.style.display = "none";
+      tiendaBox.style.display = "none";
+      proyectosDiv.style.display = "none";
+
+      const plaza = plazaSelect.value;
+      if (!plaza) return;
+
+      const asesores = unique(data.filter(d => d.plaza === plaza).map(d => d.asesor));
+      asesores.forEach(a => {
+        const opt = document.createElement("option");
+        opt.value = opt.textContent = a;
+        asesorSelect.appendChild(opt);
+      });
+      asesorBox.style.display = "block";
+    });
+
+    asesorSelect.addEventListener("change", () => {
+      clearSelect(tiendaSelect);
+      proyectoList.innerHTML = "";
+      tiendaBox.style.display = "none";
+      proyectosDiv.style.display = "none";
+
+      const plaza = plazaSelect.value;
+      const asesor = asesorSelect.value;
+      if (!asesor) return;
+
+      const tiendas = unique(data.filter(d => d.plaza === plaza && d.asesor === asesor).map(d => d.tienda));
+      tiendas.forEach(t => {
+        const opt = document.createElement("option");
+        opt.value = opt.textContent = t;
+        tiendaSelect.appendChild(opt);
+      });
+      tiendaBox.style.display = "block";
+    });
+
+    tiendaSelect.addEventListener("change", () => {
+      proyectoList.innerHTML = "";
+      proyectosDiv.style.display = "none";
+
+      const plaza = plazaSelect.value;
+      const asesor = asesorSelect.value;
+      const tienda = tiendaSelect.value;
+      if (!tienda) return;
+
+      const proyectos = unique(data.filter(d =>
+        d.plaza === plaza && d.asesor === asesor && d.tienda === tienda
+      ).map(d => d.proyecto));
+
+      proyectos.forEach(p => {
+        const li = document.createElement("li");
+        li.textContent = p;
+        proyectoList.appendChild(li);
+      });
+
+      proyectosDiv.style.display = "block";
+    });
+  </script>
+</body>
+</html>
